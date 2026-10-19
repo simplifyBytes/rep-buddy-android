@@ -43,3 +43,5 @@ npx cap sync android
 cd android && JAVA_HOME=/path/to/jdk-21 ./gradlew assembleDebug
 # -> android-app/android/app/build/outputs/apk/debug/app-debug.apk
 ```
+
+`rep-buddy-release.aab` is the Play Store upload bundle (signed with a local upload key that is not in this repo). Rebuild with `./gradlew bundleRelease` after placing `keystore.properties` and the `.jks` in `android-app/android/`.

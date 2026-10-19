@@ -16,8 +16,23 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            // keystore.properties (gitignored) next to this module's parent: storeFile, storePassword, keyAlias, keyPassword
+            def props = new Properties()
+            def f = rootProject.file('keystore.properties')
+            if (f.exists()) {
+                f.withInputStream { props.load(it) }
+                storeFile rootProject.file(props.storeFile)
+                storePassword props.storePassword
+                keyAlias props.keyAlias
+                keyPassword props.keyPassword
+            }
+        }
+    }
     buildTypes {
         release {
+            signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
