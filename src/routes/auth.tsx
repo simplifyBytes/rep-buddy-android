@@ -87,9 +87,20 @@ function AuthPage() {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) void go();
     });
+    // Native APK: coming back from the browser without a session (cancelled/failed Google login)
+    // must clear the "Signing you in" state. Delay lets a deep-link setSession land first.
+    const resume = (window as any).Capacitor?.Plugins?.App?.addListener("appStateChange", (s: { isActive: boolean }) => {
+      if (!s.isActive) return;
+      setTimeout(() => {
+        supabase.auth.getSession().then(({ data }) => {
+          if (!cancelled && !data.session) setRedirecting(false);
+        });
+      }, 1500);
+    });
     return () => {
       cancelled = true;
       sub.subscription.unsubscribe();
+      void resume?.then((h: { remove: () => void }) => h.remove());
     };
   }, [nav, router, search.redirect]);
 
@@ -163,6 +174,19 @@ function AuthPage() {
 
   async function handleGoogle() {
     setRedirecting(true);
+    // Native APK: the /~oauth/initiate route only exists on Lovable hosting, so send the
+    // system browser there and come back through the deep link handled in __root.tsx.
+    // shortcut: the broker only allows the lovable:// scheme, so the APK claims it; use an
+    // own-scheme redirect once Lovable allowlists one for this project.
+    if ((window as any).Capacitor?.isNativePlatform?.()) {
+      const params = new URLSearchParams({
+        provider: "google",
+        redirect_uri: "lovable://oauth-callback",
+        state: crypto.randomUUID(),
+      });
+      window.location.href = `https://gymigo.fit/~oauth/initiate?${params}`;
+      return;
+    }
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: `${window.location.origin}/auth?redirect=%2Fdashboard`,
     });

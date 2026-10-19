@@ -27,3 +27,19 @@ npm run dev
 - TypeScript
 - React
 - Tailwind CSS
+
+## Android APK
+
+`rep-buddy-debug.apk` is a debug build that bundles the whole web app (works with no network for the UI; sign-in and data still need Supabase). Google sign-in opens the system browser and returns through the `lovable://oauth-callback` deep link.
+
+Rebuild it (needs bun, JDK 21, Android SDK):
+
+```sh
+bun install
+bun run vite build --config vite.capacitor.config.ts
+cd android-app && npm install
+rm -rf www/assets && cp -r ../dist/client/. www/ && mv -f www/_shell.html www/index.html
+npx cap sync android
+cd android && JAVA_HOME=/path/to/jdk-21 ./gradlew assembleDebug
+# -> android-app/android/app/build/outputs/apk/debug/app-debug.apk
+```

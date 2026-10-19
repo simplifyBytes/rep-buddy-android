@@ -156,6 +156,22 @@ function RootComponent() {
     return () => data.subscription.unsubscribe();
   }, [router, queryClient]);
 
+  // Native APK only: Google sign-in returns via lovable://oauth-callback#access_token=..&refresh_token=..
+  useEffect(() => {
+    const app = (window as any).Capacitor?.Plugins?.App;
+    if (!app) return;
+    const handle = (url: string) => {
+      const u = new URL(url);
+      const p = new URLSearchParams(u.hash.slice(1) || u.search.slice(1));
+      const access_token = p.get("access_token");
+      const refresh_token = p.get("refresh_token");
+      if (access_token && refresh_token) void supabase.auth.setSession({ access_token, refresh_token });
+    };
+    app.getLaunchUrl?.().then((r: { url?: string } | null) => r?.url && handle(r.url));
+    const sub = app.addListener("appUrlOpen", (e: { url: string }) => handle(e.url));
+    return () => void sub.then((h: { remove: () => void }) => h.remove());
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <Outlet />
